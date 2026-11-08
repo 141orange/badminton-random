@@ -222,3 +222,5 @@ let last=0,acc=0;
 function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;acc+=dt;while(acc>=1/120){step(1/120);acc-=1/120}draw();requestAnimationFrame(loop)}
 fit();menu();requestAnimationFrame(loop);
 </script></body></html>
+<link rel="icon" type="image/png" href="racket.png">
+
