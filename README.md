@@ -16,6 +16,6 @@ Please feel free to share it under the following guidelines:
 * ✅ **What you CAN do:** Share links to this GitHub repository, share links to the live GitHub Pages site, and make gameplay videos or reviews (just remember to give clear credit to **141orange**!).
 * ❌ **What you CANNOT do:** You do not have permission to download, modify, or re-upload this game's files to other websites or hosting platforms (like Itch.io, Newgrounds, or other HTML game sites) without my explicit written permission.
 
-Thank you for playing and supporting indie developers!
+Thank you for playing!
 
 
