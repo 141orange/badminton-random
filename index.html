@@ -31,7 +31,8 @@ button:focus-visible{outline:.2em solid #ff4b4b;outline-offset:.15em}
 <script>
 let cx=document.getElementById('c').getContext('2d');
 const cv=document.getElementById('c'),st=document.getElementById('st'),ov=document.getElementById('ov'),wrap=document.getElementById('wrap'),pb=document.getElementById('pb'),mb=document.getElementById('mb');
-const W=800,H=448,GY=388,NX=400,NT=300,R=8,G=900,L=80,SW=.4,WIN=5,RY=194,LY=279,HR=46;
+const W=800,H=448,GY=388,NX=400,R=8,L=80,SW=.4,WIN=5,RY=194,LY=279,HR=46;
+let NT=300,G=900,RK=1,pv=1,pu=true,act=[];
 let mode=1,state='menu',paused=false,timer=0,server=0,shake=0,banner='',hint=0,onHit=null,onPt=null;
 let P=[],ball=null,texts=[],parts=[];
 const mk=s=>({side:s,dir:s?-1:1,home:s?610:190,x:s?610:190,vx:0,sw:-1,cd:0,hit:false,score:0,cpu:false,walk:0,hx:0,aim:null,plan:0,pb:-1,dm:1e9,pm:0,tk:-1,
@@ -57,6 +58,7 @@ function sfx(n,a){switch(n){
  case'beep':tone(660,.08,'square',.05);break;
  case'point':[523,659,784].forEach((f,i)=>tone(f,.14,'square',.06,0,i*.1));break;
  case'bad':tone(300,.25,'sawtooth',.06,-150);break;
+ case'pu':[392,523,659,880].forEach((f,i)=>tone(f,.1,'triangle',.07,0,i*.06));break;
  case'win':[523,659,784,1047,784,1047].forEach((f,i)=>tone(f,.18,'square',.07,0,i*.14))}}
 // ---------- pixel helpers (world coords, snapped to 4-unit pixels; canvas is scaled 1/4)
 const S=v=>Math.round(v/4)*4;
@@ -79,7 +81,8 @@ function scene(){
  for(let i=0;i<67;i++){const t=200+(i*7%3)*8;B(i*12,t,8,252-t,'#8a6858');B(i*12+8,t,4,252-t,'#6e5144')}
  for(let i=0;i<50;i++)B(i*16,240+(i*5%3)*4,16,16,'#78b83c');
  const ln='#fff';B(60,350,680,8,ln);B(20,410,760,8,ln);seg(60,354,20,414,2,ln);seg(740,354,780,414,2,ln);
- B(NX-16,GY+2,32,8,'#86b53b');B(NX-4,NT,8,GY-NT+8,'#f4f4f4');for(let y=NT+8;y<GY;y+=16)B(NX-4,y,8,4,'#bfc7d0');B(NX-8,NT-4,16,8,'#fff');B(NX+4,NT,4,GY-NT+8,'#a8b0bb')}
+ B(NX-16,GY+2,32,8,'#86b53b')}
+function drawNet(){B(NX-4,NT,8,GY-NT+8,'#f4f4f4');for(let y=NT+8;y<GY;y+=16)B(NX-4,y,8,4,'#bfc7d0');B(NX-8,NT-4,16,8,'#fff');B(NX+4,NT,4,GY-NT+8,'#a8b0bb')}
 {const m=cx;cx=bgc.getContext('2d');cx.setTransform(.25,0,0,.25,0,0);scene();cx=m}
 // ---------- geometry & AI
 function sh(p){return{x:p.x,y:GY-62-(p.sw>=0?52*Math.sin(Math.PI*Math.min(1,p.sw/SW)):0)}}
@@ -92,9 +95,10 @@ function aimFor(p){let c=cross(RY,p);if(c)return{x:c.x,t:c.t,gx:c.x,gy:RY,ring:t
 const gs=()=>Math.random()+Math.random()+Math.random()-1.5;
 // ---------- flow
 function ui(){const g=state==='serve'||state==='play'||state==='point';pb.style.display=mb.style.display=g||state==='over'||state==='menu'?'block':'none';pb.style.display=g?'block':'none'}
-function menu(){state='menu';paused=false;ui();
+function menu(){state='menu';paused=false;roll(0);ui();
  ov.innerHTML=`<div class="card"><h1><i>Net</i> <b>Timing</b></h1><p>One button. Swing when the circle hits the ring.</p>
  <div class="row"><button data-m="1">1 Player vs CPU</button><button data-m="2">2 Players</button></div>
+ <div class="row"><button class="o" data-t="1">Power-ups: ${pu?'ON':'OFF'}</button></div>
  <p class="hint">P1: W / Space / tap · P2: Up arrow / tap right side<br>Pause: P or Esc · First to ${WIN} wins</p></div>`}
 function over(w){state='over';ui();sfx('win');const n=names();
  ov.innerHTML=`<div class="card"><h1 style="color:${w?'#4cc3ff':'#ff4b4b'}">${mode==1?(w?'CPU wins':'You win!'):n[w]+' wins!'}</h1><p>Final score ${P[0].score} - ${P[1].score}</p>
@@ -102,10 +106,17 @@ function over(w){state='over';ui();sfx('win');const n=names();
 function togglePause(){if(state!=='serve'&&state!=='play'&&state!=='point')return;paused=!paused;
  ov.innerHTML=paused?`<div class="card"><h1>Paused</h1><div class="row"><button data-a="resume">Resume</button><button class="o" data-a="menu">Main menu</button></div><p class="hint">P or Esc to resume</p></div>`:''}
 ov.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;au();const d=b.dataset;
- if(d.m){mode=+d.m;start()}else if(d.r==='1')start();else if(d.r==='0'||d.a==='menu')menu();else if(d.a==='resume')togglePause()});
+ if(d.m){mode=+d.m;start()}else if(d.t){pu=!pu;menu()}else if(d.r==='1')start();else if(d.r==='0'||d.a==='menu')menu();else if(d.a==='resume')togglePause()});
 pb.onclick=()=>{au();togglePause()};mb.onclick=()=>{au();mute=!mute;mb.classList.toggle('off',mute)};
 function start(){const m=mode;P=[mk(0),mk(1)];P[1].cpu=m==1;server=0;hint=2;paused=false;serve()}
-function serve(){state='serve';timer=.9;ui();ov.innerHTML='';for(const p of P){p.x=p.home;p.vx=0;p.sw=-1;p.cd=0;p.dm=1e9}
+const PUC={'LIGHT BIRD':'#7de3ff','HEAVY BIRD':'#ff9a5a','TALL NET':'#c9a7ff','BIG RACKET':'#7dff6a','DOUBLE POINT':'#ffd23f'};
+function tag(a,x,y,al){const sc=4,w=a.length*4*sc-sc,px=al==='c'?x-w/2:x;B(px-8,y-8,w+16,sc*5+16,'#10163a');B(px-8,y-8,w+16,4,PUC[a]);txt(a,x,y,sc,PUC[a],al,0)}
+function roll(on){act=[];G=900;NT=300;RK=1;pv=1;if(!on||!pu)return;const r=Math.random;
+ if(r()<.2)act.push('LIGHT BIRD');else if(r()<.25)act.push('HEAVY BIRD');
+ if(r()<.22)act.push('TALL NET');if(r()<.22)act.push('BIG RACKET');if(r()<.25)act.push('DOUBLE POINT');
+ if(act.includes('LIGHT BIRD'))G=600;if(act.includes('HEAVY BIRD'))G=1300;if(act.includes('TALL NET'))NT=215;if(act.includes('BIG RACKET'))RK=1.5;if(act.includes('DOUBLE POINT'))pv=2;
+ if(act.length)sfx('pu')}
+function serve(){state='serve';roll(1);timer=act.length?1.7:.9;ui();ov.innerHTML='';for(const p of P){p.x=p.home;p.vx=0;p.sw=-1;p.cd=0;p.dm=1e9}
  ball={x:P[server].home,y:70,vx:0,vy:0,last:-1,hits:0,trail:[]};banner=''}
 function press(i){if(state!=='play'||paused)return;const p=P[i];if(p.sw<0&&p.cd<=0){p.sw=0;p.hit=false;p.dm=1e9;p.pe=p.aim&&p.aim.ring!==null?p.aim.t-p.aim.delay:9;sfx('swing');if(!p.cpu&&hint>0)hint-=.5}}
 addEventListener('keydown',e=>{if(e.repeat)return;au();
@@ -120,7 +131,8 @@ function doHit(p,ph){
  const d=p.dir,x0=ball.x,y0=ball.y,rr=Math.random,far=(a,b)=>NX+d*(a+rr()*(b-a));
  let k,c='#fff';
  const gate=(xl,Tg)=>{let gx=xl-150,vx,vy;for(let i=0;i<5;i++){gx=NX+d*Math.max(40,d*(gx-NX));vx=(gx-x0)/Tg;vy=(RY-y0-.5*G*Tg*Tg)/Tg;const vg=vy+G*Tg,tf=(-vg+Math.sqrt(vg*vg+2*G*(GY-R-RY)))/G;gx=xl-vx*tf}
-  gx=NX+d*Math.max(40,d*(gx-NX));ball.vx=(gx-x0)/Tg;ball.vy=(RY-y0-.5*G*Tg*Tg)/Tg};
+  gx=NX+d*Math.max(40,d*(gx-NX));ball.vx=(gx-x0)/Tg;ball.vy=(RY-y0-.5*G*Tg*Tg)/Tg;
+  const vg=ball.vy+G*Tg,t2=(-vg+Math.sqrt(vg*vg+2*G*(GY-R-RY)))/G;if(d*(gx+ball.vx*t2-NX)>345&&Tg<1.6)gate(xl,Tg+.1)};
  if(y0>258){k='SAVE';c='#9be7ff';gate(far(130,330),1.2)}
  else if(Math.abs(e)<.045){k='PERFECT!';c='#ffd23f';gate(far(130,350),.56)}
  else if(Math.abs(e)<.085){k='GOOD';c='#b6f2a0';gate(far(110,340),.95)}
@@ -131,8 +143,8 @@ function doHit(p,ph){
  if(k==='PERFECT!')shake=12;
  for(let i=0;i<(k==='PERFECT!'?24:9);i++){const a=rr()*6.28,s=80+rr()*260;parts.push({x:x0,y:y0,vx:Math.cos(a)*s,vy:Math.sin(a)*s,l:.5,c})}}
 function land(){const x=ball.x,inb=x>=40&&x<=760,w=inb?(x<NX?1:0):(ball.last>=0?1-ball.last:1-server);
- P[w].score++;server=w;state='point';timer=1.5;shake=8;if(onPt)onPt(ball.hits,!inb);
- banner=(inb?'':'OUT! ')+(mode==1?(w?'CPU SCORES':'YOU SCORE'):names()[w]+' SCORES');sfx(mode==1&&w?'bad':'point');
+ P[w].score+=pv;server=w;state='point';timer=1.5;shake=8;if(onPt)onPt(ball.hits,!inb);
+ banner=(inb?'':'OUT! ')+(mode==1?(w?'CPU SCORES':'YOU SCORE'):names()[w]+' SCORES')+(pv>1?' +2':'');sfx(mode==1&&w?'bad':'point');
  for(let i=0;i<14;i++)parts.push({x:ball.x,y:GY-4,vx:(Math.random()-.5)*240,vy:-Math.random()*200,l:.6,c:'#fff'})}
 // ---------- simulation
 function step(dt){
@@ -166,7 +178,7 @@ function step(dt){
   if(state==='play')for(const p of P){
    if(p.sw<0||p.hit||ball.last===p.side||!(p.side?ball.x>NX-40:ball.x<NX+40))continue;
    const ph=p.sw/SW,h=head(p,ph),dd=Math.hypot(h.x-ball.x,h.y-ball.y);
-   if(ph>.08&&dd<HR+R+(ball.hits?0:16)){if(dd<=p.dm){p.dm=dd;p.pm=ph}else doHit(p,p.pm)}else if(p.dm<1e9)doHit(p,p.pm)}
+   if(ph>.08&&dd<HR*RK+R+(ball.hits?0:16)){if(dd<=p.dm){p.dm=dd;p.pm=ph}else doHit(p,p.pm)}else if(p.dm<1e9)doHit(p,p.pm)}
  }
 }
 // ---------- drawing
@@ -182,7 +194,7 @@ function drawPlayer(p){
  const hand={x:sho.x+vx*44,y:sho.y+vy*44},rc={x:sho.x+vx*(L-6),y:sho.y+vy*(L-6)};
  seg(sho.x,sho.y,hand.x,hand.y,2,p.jc);B(hand.x-4,hand.y-4,8,8,p.sk);seg(hand.x,hand.y,rc.x-vx*14,rc.y-vy*14,1,'#ddd');
  const ca=Math.atan2(vy,vx);cx.fillStyle='#fff';
- for(let t=0;t<6.28;t+=.25){const ex=20*Math.cos(t),ey=13*Math.sin(t);cx.fillRect(S(rc.x+ex*Math.cos(ca)-ey*Math.sin(ca)),S(rc.y+ex*Math.sin(ca)+ey*Math.cos(ca)),4,4)}
+ for(let t=0;t<6.28;t+=.25){const ex=20*RK*Math.cos(t),ey=13*RK*Math.sin(t);cx.fillRect(S(rc.x+ex*Math.cos(ca)-ey*Math.sin(ca)),S(rc.y+ex*Math.sin(ca)+ey*Math.cos(ca)),4,4)}
  disc(hd.x,hd.y,3,p.sk);B(hd.x-12,hd.y-16,24,8,p.hr);B(hd.x-d*12-(d>0?0:0),hd.y-12,8,16,p.hr);B(hd.x+d*6-2,hd.y,4,4,'#1c1c1c')}
 function drawGuide(p){
  const a=p.aim;if(p.cpu||!a||a.ring===null||state!=='play'||p.sw>=0)return;
@@ -195,11 +207,11 @@ function drawBall(){const b=ball;if(!b)return;
  b.trail.forEach((t,i)=>{if(i%2)B(t.x,t.y,4,4,`rgba(255,255,255,${i/14*.5})`)});
  const sp=Math.hypot(b.vx,b.vy),ang=sp>30?Math.atan2(b.vy,b.vx):Math.PI/2,ux=Math.cos(ang),uy=Math.sin(ang);
  for(const o of[-.5,0,.5]){const a=ang+Math.PI+o;seg(b.x-ux*4,b.y-uy*4,b.x+Math.cos(a)*22,b.y+Math.sin(a)*22,1,'#fff')}
- disc(b.x,b.y,1,'#ffd23f')}
+ disc(b.x,b.y,act.includes('HEAVY BIRD')?2:1,act.includes('LIGHT BIRD')?'#7de3ff':act.includes('HEAVY BIRD')?'#ff7a3d':'#ffd23f')}
 function draw(){
  cx.setTransform(.25,0,0,.25,0,0);cx.imageSmoothingEnabled=false;
  cx.save();if(shake)cx.translate(S((Math.random()-.5)*shake),S((Math.random()-.5)*shake));
- cx.drawImage(bgc,0,0,W,H);
+ cx.drawImage(bgc,0,0,W,H);drawNet();
  const ps=P.filter(p=>!p.cpu&&p.aim&&state==='play');
  if(ps.length&&ball){let x=ball.x,y=ball.y,vy=ball.vy;for(let t=.06;t<1.4;t+=.07){x=ball.x+ball.vx*t;y=ball.y+ball.vy*t+.5*G*t*t;if(y>GY-R)break;B(x,y,4,4,'rgba(255,255,255,.55)')}}
  for(const p of P)drawGuide(p);
@@ -213,8 +225,10 @@ function draw(){
  B(724,396,76,52,'#000');B(728,400,68,48,'#1f7fd0');txt(P[1].score,762,404,8,'#fff','c');
  txt(n[0],8,376,4,'#fff','l');txt(n[1],792,376,4,'#fff','r');
  txt('FIRST TO '+WIN,400,20,4,'#fff','c');
+ if(state==='serve'&&act.length&&!paused)txt('POWER-UPS!',400,56,8,'#ffd23f','c');
+ if(state==='serve')act.forEach((a,i)=>tag(a,400,150+i*36,'c'));else act.forEach((a,i)=>tag(a,16,16+i*36,'l'));
  if(state==='serve'||state==='play'){const k=mode==1?'W':'W / UP';txt(mode==2?'W':'PRESS (W)',mode==2?36:610,424,4,'#fff','c');if(mode==2)txt('UP',764,424,4,'#fff','c')}
- if(hint>0&&(state==='serve'||state==='play')&&!paused)txt('PRESS WHEN CIRCLE HITS RING',400,160,4,'#ffd23f','c');
+ if(hint>0&&(state==='serve'||state==='play')&&!paused)txt('PRESS WHEN CIRCLE HITS RING',400,310,4,'#ffd23f','c');
  if(state==='serve'&&!paused)txt(mode==1&&server==0?'YOUR SERVE':mode==1?'CPU SERVES':n[server]+' SERVES',400,100,8,'#fff','c');
  if(state==='point'&&banner)txt(banner,400,100,8,'#ffd23f','c')}
 // ---------- loop
@@ -222,5 +236,3 @@ let last=0,acc=0;
 function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;acc+=dt;while(acc>=1/120){step(1/120);acc-=1/120}draw();requestAnimationFrame(loop)}
 fit();menu();requestAnimationFrame(loop);
 </script></body></html>
-<link rel="icon" type="image/png" href="gameicon.png">
-
