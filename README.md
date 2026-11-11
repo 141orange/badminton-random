@@ -1,9 +1,10 @@
 
-Welcome to the repository for my game! 
+Welcome to the repository for Badminton Random! 
 
 ## 🎮 How to Play
-* **Controls:** It shows ingame
-* **Objective:** be the first to get 5 points
+* **Controls:** Keyboard - W/Space for P1 and UP for P2 (Can put custom keybinds). Controller - Any Button
+Mobile - Tap Left for P1 and Tap Right for P2
+* **Objective:** Be the first to get 5 points, and earn coins to buy customization options in the shop.
 
 ---
 
@@ -18,4 +19,6 @@ Please feel free to share it under the following guidelines:
 
 Thank you for playing!
 
+Note: There are two official websites for this game. One is the GitHub pages website on the right, and the other is at html share.net/@orange/badmintonrandom
+No other websites are official.
 
