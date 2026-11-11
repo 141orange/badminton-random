@@ -19,6 +19,6 @@ Please feel free to share it under the following guidelines:
 
 Thank you for playing!
 
-Note: There are two official websites for this game. One is the GitHub pages website on the right, and the other is at html share.net/@orange/badmintonrandom
+Note: There are two official websites for this game. One is the GitHub pages website on the right, and the other is at htmlshare.net/@orange/badmintonrandom
 No other websites are official.
 
